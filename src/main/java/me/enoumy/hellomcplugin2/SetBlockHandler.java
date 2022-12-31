@@ -2,11 +2,9 @@ package me.enoumy.hellomcplugin2;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -20,10 +18,12 @@ import java.util.stream.Stream;
 public class SetBlockHandler implements HttpHandler {
     private final Server minecraftServer;
     private final int port;
+    private final Plugin plugin;
 
-    public SetBlockHandler(int port, Server minecraftServer) {
+    public SetBlockHandler(Plugin plugin, int port, Server minecraftServer) {
         this.minecraftServer = minecraftServer;
         this.port = port;
+        this.plugin = plugin;
     }
 
     private static Optional<Integer> parseInt(String s) {
@@ -61,37 +61,38 @@ public class SetBlockHandler implements HttpHandler {
         minecraftServer.broadcastMessage(barMessage);
 
         Optional<World> optionalWorld = Optional.ofNullable(minecraftServer.getWorld("world"));
-        System.out.println("Attempting to set block!! ");
-        optionalWorld.ifPresent(world ->
-                {
-                    System.out.println("world is some! Actually setting the block!");
-                    Location location = new Location(world, x, y, z);
-                    Block oldBlock = world.getBlockAt(location);
-                    oldBlock.setType(Material.COBBLESTONE, true);
-                }
-        );
+        optionalWorld.ifPresent(world -> {
+            Location location = new Location(world, x, y, z);
+            Block oldBlock = world.getBlockAt(location);
+            oldBlock.setType(Material.COBBLESTONE, true);
+        });
     }
 
     @Override
-    public void handle(HttpExchange header) throws IOException {
+    public void handle(HttpExchange header) {
+        System.out.println("Calling [handle] for http response!");
         OutputStream os = header.getResponseBody();
         URI uri = header.getRequestURI();
-        System.out.println(uri);
-        System.out.println("query: " + uri.getQuery());
         Map<String, String> query = parseQuery(uri);
         Optional<Integer> optionalX = Optional.ofNullable(query.get("x")).flatMap(SetBlockHandler::parseInt);
         Optional<Integer> optionalY = Optional.ofNullable(query.get("y")).flatMap(SetBlockHandler::parseInt);
         Optional<Integer> optionalZ = Optional.ofNullable(query.get("z")).flatMap(SetBlockHandler::parseInt);
         Optional<String> optionalMessage = Optional.ofNullable(query.get("message"));
 
-        optionalX.ifPresent(x -> optionalY.ifPresent(y -> optionalZ.ifPresent(z -> optionalMessage.ifPresent(message -> {
-            System.out.println("Attempting to set a boss bar!!");
-            setBlock(x, y, z, message);
-        }))));
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+                    optionalX.ifPresent(x -> optionalY.ifPresent(y -> optionalZ.ifPresent(z -> optionalMessage.ifPresent(message -> setBlock(x, y, z, message)))));
 
-        String response = "<h1>/setblock</h1>" + "<h3>Port: " + port + "</h3>" + "<p> Query is: " + query + "</p>" + "(x, y): (" + optionalX + ", " + optionalY + ")";
-        header.sendResponseHeaders(200, response.length());
-        os.write(response.getBytes());
-        os.close();
+                    String response = "<h1>/setblock</h1>" + "<h3>Port: " + port + "</h3>" + "<p> Query is: " + query + "</p>" + "(x, y): (" + optionalX + ", " + optionalY + ")";
+                    try {
+                        header.sendResponseHeaders(200, response.length());
+                        os.write(response.getBytes());
+                        os.close();
+                    } catch (IOException e) {
+                        plugin.getLogger().severe(e.toString());
+                    }
+                }
+
+
+        );
     }
 }

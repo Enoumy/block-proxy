@@ -10,9 +10,8 @@ public class HelloMcPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        getLogger().info("onEnable is called!");
         try {
-            blockProxy = new BlockProxy(9191, getServer());
+            blockProxy = new BlockProxy(this, 9191, getServer());
             blockProxy.start();
         } catch (IOException e) {
             getLogger().severe(e.toString());
@@ -21,7 +20,6 @@ public class HelloMcPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        getLogger().info("onDisable is called!");
         try {
             blockProxy.stop();
         } catch (Exception e) {
