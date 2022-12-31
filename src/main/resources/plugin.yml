@@ -1,0 +1,4 @@
+name: 'CoolPlugin'
+version: '1.0.0'
+main: 'me.enoumy.hellomcplugin2.HelloMcPlugin'
+api-version: '1.17'
