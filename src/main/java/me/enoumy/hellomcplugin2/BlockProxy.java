@@ -13,6 +13,8 @@ public class BlockProxy {
     this.httpServer = HttpServer.create(new InetSocketAddress(httpServerPort), 0);
     httpServer.createContext(
         "/setBlock", new SetBlockHandler(plugin, httpServerPort, minecraftServer));
+    httpServer.createContext(
+        "/getHighestBlockYAt", new GetHighestBlockYAtHandler(plugin, httpServerPort, minecraftServer));
   }
 
   public void start() {
